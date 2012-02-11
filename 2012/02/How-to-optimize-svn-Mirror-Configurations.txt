@@ -1,0 +1,85 @@
+#Configurations of svn how to optimize svn Mirror
+#====================================================================================
+
+#-----------Due to issues with my syntax highlighter I have commited the confiles to GIT repo--------------------------------------------------------
+
+
+<IfModule dav_svn_module>
+  # Enable a 1 Gb Subversion data cache for both fulltext and deltas.
+  SVNInMemoryCacheSize 1048576
+  SVNCacheTextDeltas On
+  SVNCacheFullTexts On
+</IfModule>
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------
+
+<IfModule dav_svn_module>
+    SVNCompressionLevel 9
+</IfModule>
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------
+
+KeepAlive On
+MaxKeepAliveRequests 1000
+KeepAliveTimeout        15
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------
+
+#!/bin/bash
+
+
+MAINREPO=`svn info https://svn.example.com/repo/main | grep Revision | awk '{print $2 }'`
+MIRRORREPO=`svn info https://svnmirror.example.com/repo/main | grep Revision | awk '{print $2 }'`
+
+
+
+ 
+if [ $MAINREPO != $MIRRORREPO ]; then  
+ 	RESULT=`/usr/bin/svnsync  --sync-username svnsync --sync-password  "password" sync https://svnmirror.example.com/sync/proxy`
+  	
+	CHECK=`echo $RESULT | grep 'Committed revision'`
+		if [ "$CHECK" = "" ]; then
+	        	mail -s "SVN Mirror is not Syncing please check"  admin@example.com </dev/null
+		fi	
+
+fi
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------
+
+#!/bin/sh
+USER=$3
+
+if [ "$USER" != "svnsync" ]; then
+    echo >&2 "Only the svnsync user is allowed to change revprops"
+    exit 1
+fi
+
+exit 0
+
+exit 0
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------
+
+<Location /sync/proxy>
+        DAV svn
+        SVNPath /path/to/svn/mirror
+      Order deny,allow
+       Deny from all
+	#IP address of the master
+        Allow from X.X.X.X
+        AuthType Basic
+        AuthName "SVN mirror Login"
+        AuthUserFile /path/to/svn/password/file
+        SSLRequireSSL
+        Require  user svnsync
+</Location>
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------
+
+ 
